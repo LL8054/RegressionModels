@@ -1,37 +1,39 @@
 ---
-title: "RegModProj"
 output: html_document
 ---
-Using the mtcars dataset, we will answer whether automatic or manual transmissions are better for MPG and quantify the difference, if any, between the two transmission types.  
+###REGRESSION MODELS PROJECT
+*Lawrence Lau*
+
+### <font color=blue>Summary</font>
+Given the mtcars dataset, we use a linear regression and verify the results through a hypothesis test  to show that <font color=orange>manual transmissions average `r mpg0 <- mtcars[mtcars$am=="0",]; mpg1 <- mtcars[mtcars$am=="1",]; round(mean(mpg1$mpg) - mean(mpg0$mpg), 2)` miles per gallon more than automatic transmissions</font>. We then use multi-variate regression models to explore other variables that could possibly factor into that difference and after adjusting (removing) those variables we discover manual transmissions average xxxxx more than automatic transmissions.  
 
 In view of the limiting page requirements for this report, it's assumed the reader knows how to load the mtcars dataset and that the "am" column refers to type of transmission (0=automatic, 1=manual). The code for some of the more basic assumptions not having to do with the analyses won't be shown.
 
-###Exploratory Data Analysis
+### <font color=blue>Exploratory Data Analysis</font>
 ```{r echo=FALSE}
 library(datasets)
 data(mtcars)
-head(mtcars, 2)
-```
-
-```{r}
 attach(mtcars)
-par(mfrow=c(2,2), omi=c(0,0,0,0), mai=c(.7,.7,.2,.2))
-plot(am, mpg, axes="FALSE", xlab="", ylab="", xaxt="n")
-axis(side=1, at=c(0,1), labels=c("Automatic", "Manual"))
-axis(side=2, at=seq(0,40, by=5 ))
-title(xlab="Transmission Type", ylab="MPG", main="Transmission Type vs MPG", )
-fit1 <- lm(mpg~am)
-abline(fit1, col="purple")
-box()
 ```
-We see the data points for Automatic (0) and Manual (1) transmissions.  The mean for Automatic is `r mpg0 <- mtcars[mtcars$am=="0",]; round(mean(mpg0$mpg), 2)` mpg and the mean for Manual is `r mpg1 <- mtcars[mtcars$am=="1",]; round(mean(mpg1$mpg), 2)` mpg. It seems manual transmissions are more efficient (average higher miles per gallon) than their automatic counterparts.  But let's dig a little deeper and see if there are confounding factors.
+
 ```{r}
 par(mfrow=c(2,2), omi=c(0,0,0,0), mai=c(.7,.7,.2,.2))
-boxplot(mpg~am, data = mtcars, col = c("dark grey", "light grey"), xlab = "Transmission Type", ylab = "MPG", main = "Transmission Type vs MPG", xaxt="n")
+boxplot(mpg~am, data = mtcars, col = c("tan", "tan"), xlab = "Transmission Type", ylab = "MPG", main = "Transmission Type vs MPG", xaxt="n")
 axis(side=1, at=c(0,1)+1, labels=c("Automatic", "Manual"))
-
 ```
+We see the data points for Automatic (0) and Manual (1) transmissions.  The mean for Automatic is `r mpg0 <- mtcars[mtcars$am=="0",]; round(mean(mpg0$mpg), 2)` mpg and the mean for Manual is `r mpg1 <- mtcars[mtcars$am=="1",]; round(mean(mpg1$mpg), 2)` mpg. It seems manual transmissions are more efficient (average higher miles per gallon) than their automatic counterparts.  Let's run a hypothesis test to verify there really is a difference.
 
+### Hypothesis Test
+And the p-value is...
 ```{r}
-fit2 <- lm(mpg~., data=mtcars)
+automatics <- mtcars[mtcars$am=="0",]
+manuals <- mtcars[mtcars$am=="1",]
+t.test(automatics$mpg, manuals$mpg)$p.value
 ```
+With a p-value of less than .05, we reject the null hypothesis that the average miles per gallon are the same in automatics and manuals.  Let's dig a little deeper and see if there are confounding factors.
+
+### <font color=blue> Model Analysis <font>
+```{r}
+fit2 <- lm(mpg~., data=mtcars); fit2$coefficients
+```
+
