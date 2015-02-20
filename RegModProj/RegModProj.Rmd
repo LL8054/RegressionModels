@@ -1,80 +1,65 @@
 ---
-#output: pdf_document
 output: html_document
 ---
 **REGRESSION MODELS PROJECT**
 *Lawrence Lau*
-
-**<font color=blue>Summary</font>**
-```{r}
-```
-Given the mtcars dataset, we use a linear regression and verify the results through a hypothesis test to show that <font color=orange>manual transmissions average `r mpg0 <- mtcars[mtcars$am=="0",]; mpg1 <- mtcars[mtcars$am=="1",]; round(mean(mpg1$mpg) - mean(mpg0$mpg), 2)` miles per gallon more than automatic transmissions</font>. We then use covariate adjustment and multiple regression models to explore other variables that could be factors, and <font color=orange>after finding a best model to hold all else equal we discover manual transmissions are more efficient by 1.49 mpg </font>.
-
-**<font color=blue>Exploratory Data Analysis</font>**
 ```{r echo=FALSE}
 library(datasets)
 data(mtcars)
 attach(mtcars)
 ```
+**<font color=blue>Summary</font>**<br>
+Given the mtcars dataset, we use a linear regression and verify the results with a t.test to see that <font color=orange>manual transmissions average `r mpg0 <- mtcars[mtcars$am=="0",]; mpg1 <- mtcars[mtcars$am=="1",]; round(mean(mpg1$mpg) - mean(mpg0$mpg), 2)` miles per gallon more than automatic transmissions</font>. We then use covariate adjustment and multiple regression models to explore other variables that could be factors, and <font color=orange>after finding a best model to hold all else equal we discover manual transmissions are more efficient by 1.49 mpg </font>.
 
-In <font color=green>Appendix 1, Boxplot - Transmission Type vs MPG</font>, we see the mean for automatics is `r mpg0 <- mtcars[mtcars$am=="0",]; round(mean(mpg0$mpg), 2)` mpg and the mean for manuals is `r mpg1 <- mtcars[mtcars$am=="1",]; round(mean(mpg1$mpg), 2)` mpg. Let's run a hypothesis test to verify there really is a difference.
-
-**Hypothesis Test**
-And the p-value is...
+**<font color=blue>Exploratory Data Analysis</font>**<br>
+In <font color=green>Appendix 1, Boxplot - Transmission Type vs MPG</font>, the avg mpg difference between automatics (`r mpg0 <- mtcars[mtcars$am=="0",]; round(mean(mpg0$mpg), 2)`) and manuals (`r mpg1 <- mtcars[mtcars$am=="1",]; round(mean(mpg1$mpg), 2)`) is `r round(mean(mpg1$mpg), 2)-round(mean(mpg0$mpg), 2)` mpg. Let's run a hypothesis test to verify there really is a difference.
 ```{r echo=FALSE}
 automatics <- mtcars[mtcars$am=="0",]
 manuals <- mtcars[mtcars$am=="1",]
 t.test(automatics$mpg, manuals$mpg)$p.value
 ```
-With a p-value of less than .05, we reject the null hypothesis that the average miles per gallon are the same in automatics and manuals.  So there really is a difference.  But as the R-Squared number from the model shows...
+With a p-value of less than .05, we reject the null hypothesis that the average miles per gallon are the same in automatics and manuals.  So there really is a difference.  But as r-squared shows, that only explains ~36% of the variance. There must be other factors.
 ```{r}
 summary(lm(mpg~am))$r.squared
 ```
-... that only explains ~36% of the variance.  We must dig deeper into the other variables.
 
-**<font color=blue> Models Analyses</font>**
+**<font color=blue> Models Analyses</font>**<br>
+We fit each individual predictor variable against outcome MPG and rank their effect using the coefficient. 
 ```{r}
 fit2 <- lm(mpg~., data=mtcars); fit2$coefficients
 ```
-From this list of correlation coefficients of predictor variables fitted individually against MPG as the outcome, we can rank the following variables having a negative effect on mileage efficiency from greatest to least:  wt (weight), carb (# of carburetors), cyl (# cylinders), and hp (horsepower).  The variables having a possible effect on efficiency from least to greatest are disp (displacement), vs (V or Inline cylinders), gear (# forward gears), drat (rear axle ratio), qsec (1/4 mile time), and am (transmission type).
-
-I'll take the wt, carb, cyl, vs, gear, drat, and qsec variables and after ruling out any variables that have a stronger than .5 correlation with am, fit them into a new regression with am against mpg.  We must be careful which variables we choose, because anytime a regressor is added the standard error increases in the other regressors. Accordingly, the more regressors that are added, the higher the variance inflates-  and actually the more correlated the regressors are the higher the inflation level.  In other words, regressing two variables that are similar to each other (or have some sort of relationship like # of pistons and # of cylinders) will make the standard error that much higher for those variables than another variable that has no correlation with them.  How much higher?  The square root of the variance taken as a percentage.  However if you underfit a model by precluding a regressor, say in an attempt to avoid inflating the variance, you will have a bias. It is preferable to include all necessary and even unnecessary variables in order to have an unbiased variance estimate.  
-
-First, Correlations. 
+The greatest net effect variables, wt, carb, cyl, vs, gear, drat, and qsec, are taken and after excluding any with correlation > .5 with am, fit them into a new regression with predictor am against mpg. First, correlations. 
 ```{r echo=FALSE}
 corr <- data.frame(cor(am,wt), cor(am,carb), cor(am,cyl), cor(am,vs), cor(am,gear), cor(am,drat), cor(am,qsec))
 colnames(corr) <- c("am/wt", "am/carb", "am/cyl", "am/vs", "am/gear", "am/drat", "am/qsec")
 corr
 ```
-Next, we'll leave out any pairs that have a correlation > .5 (bye bye am/gear and am/drat) and run covariate models.
-
+Next, we'll leave out any pairs with correlation > .5 and run covariate model tests.
 ```{r echo=FALSE}
 a <- lm(mpg~am+wt); b <- lm(mpg~am+carb); c <- lm(mpg~am+cyl); d <- lm(mpg~am+vs); e <- lm(mpg~am+qsec)
 fit3 <- c(a$coef, b$coef, c$coef, d$coef, e$coef)
 fit3
 ```
-The two most interesting regressors are transmission type/weight (am+wt) and transmission type/cylinder alignment (am+vs).  The coefficients suggest for am+wt that manual transmissions are actually less gas efficient (by .02 miles per gallon) while the weight of the car matters more (for every 1,000 pounds heavier a car is it gets 5.35 less miles per gallon).  It's surprising that the shape of the cylinder arrangement (V shaped or Inline) makes as much of a difference as it suggests here (an Inline/Straight cylinder arrangement gets 6.92 miles more per gallon).  We'll now finally run an ANOVA (***AN***alysis ***O***f ***VA***riance) test, starting with predictor am and outcome mpg, then add wt, then adding vs, and one by one the remaining regressors and see at which point the p-values tell us not to include variables.
+We'll finally run an ANOVA test starting with predictor am and outcome mpg, then add variables individually in order of influence (most to least based on above coefficients). 
 ```{r}
-fitA <- lm(mpg~am); fitB <- lm(mpg~am+wt); fitC <- lm(mpg~am+wt+vs); fitD <- lm(mpg~am+wt+vs+cyl); fitE <- lm(mpg~am+wt+vs+cyl+carb); fitF <- lm(mpg~am+wt+vs+cyl+carb+qsec)
-anova <- anova(fitA, fitB, fitC, fitD, fitE, fitF)
+Mod1 <- lm(mpg~am); Mod2 <- lm(mpg~am+wt); Mod3 <- lm(mpg~am+wt+vs); Mod4 <- lm(mpg~am+wt+vs+cyl)
+anova <- anova(Mod1, Mod2, Mod3, Mod4)
 anova[6]
 ```
-The p-value crosses above the .05 threshold after Model 3, which as you can see in the code above is fitC.  In other words, including the variables in and only up to those found in fitC, am+wt+vs (transmission type, weight, and cylinder alignment) gives us our best model. A residual plot of that model (reference <font color=green>APPENDIX 2, Residual Plot, lm(mpg~am+wt+vs)</font>) shows us that everything looks right. Is variance constant throughout and not dependent on x (no heteroskedasticity)? check.  Is there a normal distribution? Check.  Looks like a good model fit.   
-
+The p-value crosses above the .05 threshold after Model 3, which means the variables in that model, am+wt+vs (transmission type, weight, and cylinder alignment) gives us our best model. A residual plot of that model (reference <font color=green>APPENDIX 2, Residual Plot, lm(mpg~am+wt+vs)</font>) confirms constant variance (no heteroskedasticity) and a normal distribution.  It's a good model fit.
 ```{r echo=FALSE}
 lm(mpg~am+wt+vs)$coef
 ```
-<br>
 R-Squared
 ```{r echo=FALSE}
 summary(lm(mpg~am+wt+vs))$r.squared
 ```
-Our best model coefficient shows us that on average we can expect a car with a manual transmission to average 1.49 miles per gallon better than its counterpart with an automatic transmission. The R-squared number of .8079 means this model explains 81% of the variance-  in other words, we still have about a 19% rate of uncertainty.  
+Our best model coefficient shows us that we can expect a car with a manual transmission to average 1.49 mpg better than its counterpart with an automatic transmission. The R-squared number of .8079 means this model explains ~81% of the variance-  in other words, we still have about a 19% rate of uncertainty.  
 
 **<font color=blue>Conclusion</font>**<br>
-Our exploratory data analysis suggested that cars with manual transmissions are more efficient by 7.24 mpg.  A quick hypothesis test proved there really was a difference.  To find how much different, each variable was regressed as a predictor variable against mpg, and the variables that had the largest net effect were selected to run a correlation test against am (transmission type). Any pairs that had a correlation > .5 (suggesting the pairs were dependent or otherwise related) were thrown out.  The remaining variables were then individually added as predictors to a model with am as the predictor variable against mpg. An ANOVA test was run with those models to see which model was the best (last model for which p-value < .05). The resulting model was a regression with the predictor variables am (transmission type) + wt (weight) + vs (cylinder alignment) against mpg as the outcome.  The coefficients 1.49(am), -3.78(wt), and 3.62(vs) give us our best estimates that ***1.)*** a standard/manual transmission is more efficient than an automatic by 1.49 mpg, ***2.)*** for every 1,000 pounds heavier a car gets it loses 3.78 mpg and ***3.)*** an inline/straight cylinder shape gets 3.62 mpg more than a v-shaped arrangement.  The intercept of 30.079 tells us the average car averages 30.079 miles per gallon. These numbers explain about 81% of the variance and leave 19% uncertain.  Generally, manual transmissions are better for gas efficiency than automatics.  
+Our initial exploratory data analysis suggested that cars with manual transmissions are more efficient by 7.24 mpg.  While a hypothesis test proved there was a difference, the r-squared number showed the transmission type was responsible for only ~36% of variance.  To find the true difference in mpg caused by transmission type, all other variables were regressed individually as a predictor variable against mpg, and the variables that had the largest net effect were selected to run a correlation test against am (transmission type). Any pairs that had a correlation > .5 (suggesting the pairs were dependent or otherwise related) were thrown out.  The remaining variables were then individually added as predictors to a model with predictor am against outcome mpg. An ANOVA test was run with those models to see which model was the best (last model for which p-value < .05). The resulting model was a regression with the predictor variables am (transmission type) + wt (weight) + vs (cylinder alignment) against outcome mpg.  The coefficients 1.49(am), -3.78(wt), and 3.62(vs) give us our best estimates that ***<font color=orange>1.)*** a standard/manual transmission is more efficient than an automatic by 1.49 mpg </font>, ***2.)*** for every 1,000 pounds heavier a car gets it loses 3.78 mpg and ***3.)*** an inline/straight cylinder shape gets 3.62 mpg more than a v-shaped arrangement.  The intercept of 30.079 tells us the average car averages 30.079 miles per gallon. These numbers explain about 81% of the variance and leave 19% uncertain.  
 
-\pagebreak
+
 APPENDIX 1 - Boxplot, Transmission Type vs MPG
 
 ```{r}
@@ -83,7 +68,7 @@ boxplot(mpg~am, data = mtcars, col = c("tan", "tan"), xlab = "Transmission Type"
 axis(side=1, at=c(0,1)+1, labels=c("Automatic", "Manual"))
 ```
 
-\pagebreak
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 APPENDIX 2 - Residual Plot, lm(mpg~am+wt+vs)
 ```{r}
 par(mfrow = c(2,2))
